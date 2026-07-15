@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NHC Trainer Contest — Leaderboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=DM+Sans:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0F1219; --bg-2:#161A24; --surface:#1B202B; --surface-2:#212736;
+    --line: rgba(255,255,255,0.07); --text:#F1F3F8; --muted:#8891A3; --muted-2:#5C6478;
+    --t-start:#545B6B; --t-build:#4C8FE0; --t-momentum:#8B6CF1; --t-almost:#F2A93B;
+    --t-achieved:#38C172; --t-outstanding:#F5C242; --plate:#2A3140; --danger:#F1543F;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1200px 600px at 15% -10%, rgba(139,108,241,0.10), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(245,194,66,0.08), transparent 55%),
+      var(--bg);
+    color:var(--text); font-family:'DM Sans', sans-serif; -webkit-font-smoothing:antialiased; min-height:100vh;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:36px 20px 80px;}
+
+  .hero{display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-end; gap:24px; margin-bottom:28px; padding-bottom:24px; border-bottom:1px solid var(--line);}
+  .eyebrow{font-family:'Space Mono', monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--t-outstanding); margin:0 0 10px; display:flex; align-items:center; gap:8px;}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--t-achieved); box-shadow:0 0 0 4px rgba(56,193,114,0.18); animation:pulse 1.8s infinite;}
+  .eyebrow .dot.err{background:var(--danger); box-shadow:0 0 0 4px rgba(241,84,63,0.18);}
+  .eyebrow .dot.loading{background:var(--t-almost); box-shadow:0 0 0 4px rgba(242,169,59,0.18);}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+  h1{font-family:'Anton', sans-serif; font-weight:400; letter-spacing:0.01em; font-size:clamp(34px,5vw,56px); line-height:0.95; margin:0; text-transform:uppercase;}
+  h1 span{color:var(--t-outstanding);}
+  .hero-sub{color:var(--muted); font-size:14.5px; margin-top:10px; max-width:480px;}
+  .sync-line{font-family:'Space Mono', monospace; font-size:11px; color:var(--muted-2); margin-top:8px; display:flex; align-items:center; gap:10px;}
+  .sync-line button{
+    font-family:'Space Mono', monospace; font-size:10.5px; background:var(--surface); color:var(--muted);
+    border:1px solid var(--line); border-radius:6px; padding:4px 9px; cursor:pointer;
+  }
+  .sync-line button:hover{color:var(--text); border-color:var(--muted-2);}
+
+  .stat-row{display:flex; gap:10px; flex-wrap:wrap;}
+  .stat{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 16px; min-width:118px;}
+  .stat .n{font-family:'Space Mono', monospace; font-weight:700; font-size:22px;}
+  .stat .l{color:var(--muted-2); font-size:10.5px; text-transform:uppercase; letter-spacing:0.08em; margin-top:2px;}
+  .stat.gold .n{color:var(--t-outstanding);}
+  .stat.green .n{color:var(--t-achieved);}
+
+  .banner{display:none; align-items:center; gap:10px; background:rgba(241,84,63,0.1); border:1px solid rgba(241,84,63,0.35); color:#FFB4AA; border-radius:10px; padding:10px 14px; font-size:12.5px; margin-bottom:24px;}
+  .banner.show{display:flex;}
+
+  .podium-label{font-family:'Space Mono', monospace; font-size:11px; letter-spacing:0.18em; text-transform:uppercase; color:var(--muted-2); margin:38px 0 14px;}
+  .podium{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; align-items:end;}
+  .p-card{border-radius:14px; padding:20px 16px 18px; position:relative; overflow:hidden; border:1px solid var(--line); background:var(--surface);}
+  .p-card.rank1{order:2; padding-top:28px; background:linear-gradient(160deg, rgba(245,194,66,0.14), var(--surface) 60%); border-color:rgba(245,194,66,0.35);}
+  .p-card.rank2{order:1; background:linear-gradient(160deg, rgba(139,108,241,0.10), var(--surface) 60%);}
+  .p-card.rank3{order:3; background:linear-gradient(160deg, rgba(76,143,224,0.10), var(--surface) 60%);}
+  .p-medal{font-size:26px;}
+  .p-name{font-family:'Anton', sans-serif; font-size:19px; text-transform:uppercase; margin:8px 0 2px; line-height:1.05;}
+  .p-center{color:var(--muted); font-size:12px;}
+  .p-pct{font-family:'Space Mono', monospace; font-weight:700; font-size:30px; margin-top:10px;}
+  .p-card.rank1 .p-pct{color:var(--t-outstanding);}
+  .p-prize{display:inline-block; margin-top:8px; font-size:11px; padding:4px 9px; border-radius:20px; background:rgba(245,194,66,0.15); color:var(--t-outstanding); font-weight:700;}
+
+  .controls{display:flex; gap:10px; flex-wrap:wrap; margin:36px 0 18px; align-items:center;}
+  .search{flex:1; min-width:200px; background:var(--surface); border:1px solid var(--line); border-radius:9px; padding:10px 14px; color:var(--text); font-size:14px; font-family:inherit;}
+  .search::placeholder{color:var(--muted-2);}
+  select{background:var(--surface); border:1px solid var(--line); color:var(--text); border-radius:9px; padding:10px 12px; font-size:13px; font-family:inherit; cursor:pointer;}
+  .legend{display:flex; gap:12px; flex-wrap:wrap; margin:4px 0 26px;}
+  .leg-item{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted);}
+  .leg-dot{width:8px;height:8px;border-radius:2px;}
+
+  .center-group{margin-bottom:22px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--bg-2);}
+  .center-head{display:flex; justify-content:space-between; align-items:center; padding:14px 18px; background:var(--surface-2); cursor:pointer; user-select:none;}
+  .center-head:hover{background:#252c3d;}
+  .center-name{font-family:'Anton', sans-serif; font-size:16px; text-transform:uppercase; letter-spacing:0.01em;}
+  .center-meta{display:flex; align-items:center; gap:14px;}
+  .center-avg{font-family:'Space Mono', monospace; font-size:13px; color:var(--muted);}
+  .chevron{transition:transform .25s; color:var(--muted-2); font-size:12px;}
+  .center-group.collapsed .chevron{transform:rotate(-90deg);}
+  .center-body{max-height:2000px; transition:max-height .3s ease;}
+  .center-group.collapsed .center-body{max-height:0; overflow:hidden;}
+
+  .row{display:grid; grid-template-columns:34px 1fr 240px 100px; gap:14px; align-items:center; padding:12px 18px; border-top:1px solid var(--line);}
+  .row:hover{background:rgba(255,255,255,0.02);}
+  .rank-badge{font-family:'Space Mono', monospace; font-size:12px; color:var(--muted-2); text-align:center;}
+  .who{min-width:0;}
+  .who-name{font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .who-tag{display:inline-block; font-size:9.5px; letter-spacing:0.05em; text-transform:uppercase; padding:2px 6px; border-radius:4px; margin-top:3px; font-weight:700;}
+  .tag-pt{background:rgba(76,143,224,0.15); color:var(--t-build);}
+  .tag-fm{background:rgba(139,108,241,0.15); color:var(--t-momentum);}
+
+  .track{height:16px; border-radius:4px; background:var(--plate); position:relative; overflow:hidden; display:flex; align-items:center; background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.05) 0 2px, transparent 2px 20px);}
+  .fill{height:100%; border-radius:3px 0 0 3px; position:relative; transition:width 1s cubic-bezier(.2,.8,.2,1);}
+  .fill::after{content:''; position:absolute; right:-1px; top:-3px; bottom:-3px; width:6px; border-radius:3px; background:inherit; filter:brightness(1.5);}
+  .track-pct{position:absolute; right:6px; top:50%; transform:translateY(-50%); font-family:'Space Mono', monospace; font-size:10px; color:var(--muted); z-index:2;}
+
+  .figs{text-align:right;}
+  .figs .ach{font-family:'Space Mono', monospace; font-size:13px; font-weight:700;}
+  .figs .tgt{font-size:10px; color:var(--muted-2);}
+
+  .empty-note{padding:14px 18px; color:var(--muted-2); font-size:12.5px; font-style:italic;}
+
+  .foot-legend{margin-top:34px; padding-top:20px; border-top:1px solid var(--line); display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;}
+  .fl-card{background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:12px 14px;}
+  .fl-card .fl-tier{font-size:11.5px; font-weight:700; display:flex; align-items:center; gap:6px;}
+  .fl-card .fl-desc{font-size:11px; color:var(--muted-2); margin-top:4px;}
+
+  @media (max-width:640px){
+    .row{grid-template-columns:26px 1fr 90px; grid-template-areas:"rank who figs" "rank track track"; }
+    .row .rank-badge{grid-area:rank;} .row .who{grid-area:who;} .row .track{grid-area:track; margin-top:6px;} .row .figs{grid-area:figs;}
+    .podium{grid-template-columns:1fr;} .p-card.rank1,.p-card.rank2,.p-card.rank3{order:0;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div>
+      <p class="eyebrow"><span class="dot loading" id="statusDot"></span><span id="statusText">Live · NHC Sales Contest</span></p>
+      <h1>Trainer <span>Leaderboard</span></h1>
+      <p class="hero-sub">Every session sold moves the bar. Hit 100% of target and the cash prize unlocks — cross 150% and it doubles up.</p>
+      <div class="sync-line"><span id="syncTime">Loading live data…</span><button onclick="syncNow()">Refresh now</button></div>
+    </div>
+    <div class="stat-row" id="statRow"></div>
+  </div>
+
+  <div class="banner" id="errBanner">⚠️ Couldn't reach the sheet — showing the last data that loaded. Check that the sheet is still shared as "Anyone with the link can view".</div>
+
+  <p class="podium-label">🏆 Top Performers</p>
+  <div class="podium" id="podium"></div>
+
+  <div class="controls">
+    <input class="search" id="searchInput" type="text" placeholder="Search trainer or center...">
+    <select id="centerFilter"><option value="all">All centers</option></select>
+    <select id="roleFilter">
+      <option value="all">All roles</option>
+      <option value="Personal Trainer">Personal Trainer</option>
+      <option value="Fitness Manager">Fitness Manager</option>
+    </select>
+    <select id="sortMode">
+      <option value="pct">Sort: % Achieved</option>
+      <option value="ach">Sort: Revenue</option>
+      <option value="name">Sort: Name</option>
+    </select>
+  </div>
+
+  <div class="legend" id="legendRow"></div>
+  <div id="groups"></div>
+  <div class="foot-legend" id="footLegend"></div>
+
+</div>
+
+<script>
+/* ============ CONFIG ============ */
+const SHEET_ID = "189ngSZIFwYSAc-cH-DtOZZJPTpvmGG-ydvbQlIYjHP0";
+const GID = "455326692";           // "View" tab
+const HEADER_RANGE = "A4:I500";     // header row + data, generous room for the whole month
+const REFRESH_MS = 5 * 60 * 1000;   // auto-refresh every 5 minutes
+
+/* ============ FALLBACK SNAPSHOT (shown instantly, replaced once live data arrives) ============ */
+const FALLBACK_DATA = [
+{id:78314,name:"Akash Sharma",center:"cult neo gym Alambagh",role:"Fitness Manager",tgt:80000,ach:0},
+{id:89154,name:"Ranjeet Singh",center:"cult neo gym Alambagh",role:"Personal Trainer",tgt:100000,ach:41660},
+{id:89194,name:"Piyush Mohan",center:"cult neo gym Alambagh",role:"Personal Trainer",tgt:100000,ach:25020},
+{id:76096,name:"Vivek Tiwari",center:"cult neo gym Alambagh",role:"Personal Trainer",tgt:100000,ach:23630},
+{id:89158,name:"Shubhnav Shukla",center:"cult neo gym Alambagh",role:"Personal Trainer",tgt:100000,ach:41870},
+{id:89156,name:"Vivek Kumar",center:"cult neo gym Alambagh",role:"Personal Trainer",tgt:100000,ach:87210},
+{id:53368,name:"Aditya Pratap Mishra",center:"cult neo gym Ashiyana",role:"Fitness Manager",tgt:80000,ach:52440},
+{id:86531,name:"Abhinav Singh",center:"cult neo gym Ashiyana",role:"Personal Trainer",tgt:100000,ach:0},
+{id:86527,name:"Surendra Yadav",center:"cult neo gym Ashiyana",role:"Personal Trainer",tgt:100000,ach:0},
+{id:86161,name:"Swapnil Kumar",center:"cult neo gym Ashiyana",role:"Personal Trainer",tgt:100000,ach:0},
+{id:86211,name:"Ujjwal Gupta",center:"cult neo gym Ashiyana",role:"Personal Trainer",tgt:100000,ach:49163},
+{id:89157,name:"Gaurav",center:"cult neo gym Ashiyana",role:"Personal Trainer",tgt:100000,ach:25020},
+{id:89175,name:"Abhishek Singh Negi",center:"cult neo gym Ashiyana",role:"Personal Trainer",tgt:100000,ach:16320},
+{id:84307,name:"Deepak Singh",center:"Cult Gym Indiranagar, Umrao Tower",role:"Fitness Manager",tgt:75000,ach:24840},
+{id:91761,name:"Adarsh Vishwakarma",center:"Cult Gym Indiranagar, Umrao Tower",role:"Personal Trainer",tgt:55000,ach:88539},
+{id:91799,name:"Diwakar Singh",center:"Cult Gym Indiranagar, Umrao Tower",role:"Personal Trainer",tgt:55000,ach:12600},
+{id:91758,name:"Sharad Tiwari",center:"Cult Gym Indiranagar, Umrao Tower",role:"Personal Trainer",tgt:55000,ach:67680},
+{id:91759,name:"Shoaib Akhtar",center:"Cult Gym Indiranagar, Umrao Tower",role:"Personal Trainer",tgt:55000,ach:27540},
+{id:91763,name:"Arun Singh",center:"Cult Gym Indiranagar, Umrao Tower",role:"Personal Trainer",tgt:55000,ach:0},
+{id:91158,name:"Rohit Kondiya",center:"Cult Gym Vijay Nagar",role:"Fitness Manager",tgt:100000,ach:37000},
+{id:90781,name:"Vishal Vishwkarma",center:"Cult Gym Vijay Nagar",role:"Personal Trainer",tgt:100000,ach:18400},
+{id:90827,name:"Rohit Sharma",center:"Cult Gym Vijay Nagar",role:"Personal Trainer",tgt:100000,ach:23000},
+{id:90876,name:"Deepak Sanjeev Shukla",center:"Cult Gym Vijay Nagar",role:"Personal Trainer",tgt:100000,ach:0},
+{id:91767,name:"Sambhu Pradhan",center:"Cult Gym VIP Road Vesu",role:"Personal Trainer",tgt:0,ach:0},
+{id:91760,name:"Shirsath Dipak",center:"Cult Gym VIP Road Vesu",role:"Personal Trainer",tgt:0,ach:0},
+{id:91764,name:"Abhishek Ajay Vansdawala",center:"Cult Gym VIP Road Vesu",role:"Personal Trainer",tgt:0,ach:27540},
+{id:91933,name:"Solanki Hitesh Rameshbhai",center:"Cult Gym VIP Road Vesu",role:"Fitness Manager",tgt:0,ach:0},
+{id:92361,name:"Ankit Bhagwatiprasad Rai",center:"Cult Gym VIP Road Vesu",role:"Personal Trainer",tgt:0,ach:111960},
+{id:92436,name:"Hirenkumar Babubhai Rathod",center:"Cult Gym VIP Road Vesu",role:"Personal Trainer",tgt:0,ach:0},
+];
+
+const TIERS = [
+  {key:'start', min:-1, max:0, color:'var(--t-start)', label:'Just Getting Started', emoji:'🚀', prize:null},
+  {key:'build', min:0.0001, max:50, color:'var(--t-build)', label:'Building Momentum', emoji:'📈', prize:null},
+  {key:'momentum', min:50, max:80, color:'var(--t-momentum)', label:'Great Progress', emoji:'💪', prize:null},
+  {key:'almost', min:80, max:100, color:'var(--t-almost)', label:'Almost There', emoji:'🔥', prize:null},
+  {key:'achieved', min:100, max:150, color:'var(--t-achieved)', label:'Target Achieved', emoji:'🥉', prize:'₹1,000'},
+  {key:'outstanding', min:150, max:99999, color:'var(--t-outstanding)', label:'Outstanding', emoji:'🏆', prize:'₹6,000'},
+];
+
+function tierFor(pct, hasTarget){
+  if(!hasTarget) return {key:'noTarget', min:0,max:0, color:'var(--t-start)', label:'Awaiting Target', emoji:'⏳', prize:null};
+  for(const t of TIERS){ if(pct >= t.min && pct <= t.max) return t; }
+  return TIERS[TIERS.length-1];
+}
+function fmtINR(n){ return '₹' + Math.round(n).toLocaleString('en-IN'); }
+function shortCenter(c){ return c.replace('cult neo gym ','').replace('Cult Gym ',''); }
+
+/* ============ RENDER PIPELINE (works off whatever DATA is current) ============ */
+let DATA = [];
+let ranked = [];
+
+function buildDashboard(rawRows){
+  DATA = rawRows.map(d=>{
+    const hasTarget = d.tgt > 0;
+    const pct = hasTarget ? (d.ach/d.tgt*100) : 0;
+    return {...d, hasTarget, pct, tier: tierFor(pct, hasTarget)};
+  });
+  ranked = DATA.filter(d=>d.hasTarget).slice().sort((a,b)=>b.pct-a.pct);
+  const centers = [...new Set(DATA.map(d=>d.center))];
+
+  const withTarget = DATA.filter(d=>d.hasTarget);
+  const totalAch = withTarget.reduce((s,d)=>s+d.ach,0);
+  const totalTgt = withTarget.reduce((s,d)=>s+d.tgt,0);
+  const overallPct = totalTgt ? (totalAch/totalTgt*100).toFixed(1) : '0.0';
+  const cashUnlocked = withTarget.reduce((s,d)=> s + (d.tier.prize ? parseInt(d.tier.prize.replace(/[₹,]/g,'')) : 0), 0);
+  const achievers = withTarget.filter(d=>d.pct>=100).length;
+
+  document.getElementById('statRow').innerHTML = `
+    <div class="stat"><div class="n">${withTarget.length}</div><div class="l">Trainers Live</div></div>
+    <div class="stat green"><div class="n">${achievers}</div><div class="l">Target Hit</div></div>
+    <div class="stat"><div class="n">${overallPct}%</div><div class="l">Pool Achieved</div></div>
+    <div class="stat gold"><div class="n">${fmtINR(cashUnlocked)}</div><div class="l">Cash Unlocked</div></div>
+  `;
+
+  const top3 = ranked.slice(0,3);
+  document.getElementById('podium').innerHTML = top3.map((d,i)=>{
+    const rank = i+1;
+    const medal = rank===1?'🥇':rank===2?'🥈':'🥉';
+    return `
+    <div class="p-card rank${rank}">
+      <div class="p-medal">${medal}</div>
+      <div class="p-name">${d.name}</div>
+      <div class="p-center">${shortCenter(d.center)} · ${d.role==='Fitness Manager'?'FM':'PT'}</div>
+      <div class="p-pct">${d.pct.toFixed(1)}%</div>
+      ${d.tier.prize ? `<div class="p-prize">${d.tier.emoji} ${d.tier.prize} unlocked</div>` : `<div class="p-prize" style="background:rgba(139,108,241,.15);color:var(--t-momentum)">${d.tier.emoji} ${d.tier.label}</div>`}
+    </div>`;
+  }).join('');
+
+  document.getElementById('legendRow').innerHTML = TIERS.map(t=>`
+    <div class="leg-item"><span class="leg-dot" style="background:${t.color}"></span>${t.emoji} ${t.label}</div>
+  `).join('') + `<div class="leg-item"><span class="leg-dot" style="background:var(--t-start)"></span>⏳ Awaiting Target</div>`;
+
+  document.getElementById('footLegend').innerHTML = TIERS.map(t=>`
+    <div class="fl-card">
+      <div class="fl-tier" style="color:${t.color}">${t.emoji} ${t.label}</div>
+      <div class="fl-desc">${t.prize ? t.prize + ' cash prize' : (t.max<=100 ? Math.max(t.min,0)+'–'+t.max+'% of target' : '')}</div>
+    </div>
+  `).join('');
+
+  const centerFilter = document.getElementById('centerFilter');
+  const prevVal = centerFilter.value;
+  centerFilter.innerHTML = '<option value="all">All centers</option>' + centers.map(c=>`<option value="${c}">${shortCenter(c)}</option>`).join('');
+  if([...centerFilter.options].some(o=>o.value===prevVal)) centerFilter.value = prevVal;
+
+  renderRows();
+}
+
+function renderRows(){
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const cVal = document.getElementById('centerFilter').value;
+  const rVal = document.getElementById('roleFilter').value;
+  const sVal = document.getElementById('sortMode').value;
+  const centers = [...new Set(DATA.map(d=>d.center))];
+  let visibleCenters = cVal==='all' ? centers : [cVal];
+
+  const groupsHTML = visibleCenters.map(center=>{
+    let rows = DATA.filter(d=>d.center===center);
+    if(rVal!=='all') rows = rows.filter(d=>d.role===rVal);
+    if(q) rows = rows.filter(d=> d.name.toLowerCase().includes(q) || d.center.toLowerCase().includes(q));
+    if(rows.length===0) return '';
+
+    if(sVal==='pct') rows = rows.slice().sort((a,b)=> b.pct - a.pct);
+    else if(sVal==='ach') rows = rows.slice().sort((a,b)=> b.ach - a.ach);
+    else rows = rows.slice().sort((a,b)=> a.name.localeCompare(b.name));
+
+    const teamWithTgt = DATA.filter(d=>d.center===center && d.hasTarget);
+    const teamPct = teamWithTgt.length ? (teamWithTgt.reduce((s,d)=>s+d.ach,0)/teamWithTgt.reduce((s,d)=>s+d.tgt,0)*100) : null;
+
+    const rowsHTML = rows.map(d=>{
+      const rankIdx = ranked.indexOf(d);
+      const rankLabel = d.hasTarget ? '#'+(rankIdx+1) : '—';
+      const widthPct = d.hasTarget ? Math.min(d.pct,100) : 0;
+      const overflowBadge = d.pct>100 ? `<span style="color:var(--t-outstanding); font-size:9px; margin-left:4px;">+${(d.pct-100).toFixed(0)}%</span>` : '';
+      return `
+      <div class="row">
+        <div class="rank-badge">${rankLabel}</div>
+        <div class="who">
+          <div class="who-name">${d.name}</div>
+          <span class="who-tag ${d.role==='Fitness Manager'?'tag-fm':'tag-pt'}">${d.role==='Fitness Manager'?'FM':'PT'}</span>
+        </div>
+        <div class="track">
+          <div class="fill" style="width:${widthPct}%; background:${d.tier.color};"></div>
+          <div class="track-pct">${d.hasTarget ? d.pct.toFixed(1)+'%' : 'no target'}${overflowBadge}</div>
+        </div>
+        <div class="figs">
+          <div class="ach">${fmtINR(d.ach)}</div>
+          <div class="tgt">${d.hasTarget ? 'of '+fmtINR(d.tgt) : 'unassigned'}</div>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `
+    <div class="center-group" data-center="${center}">
+      <div class="center-head" onclick="this.parentElement.classList.toggle('collapsed')">
+        <div class="center-name">${shortCenter(center)}</div>
+        <div class="center-meta">
+          <span class="center-avg">${teamPct!==null ? teamPct.toFixed(1)+'% team avg' : 'no active targets'}</span>
+          <span class="chevron">▼</span>
+        </div>
+      </div>
+      <div class="center-body">${rowsHTML}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('groups').innerHTML = groupsHTML || `<div class="empty-note">No trainers match that search.</div>`;
+}
+
+['searchInput','centerFilter','roleFilter','sortMode'].forEach(id=>{
+  document.getElementById(id).addEventListener('input', renderRows);
+  document.getElementById(id).addEventListener('change', renderRows);
+});
+
+/* ============ LIVE SYNC (JSONP against the sheet's gviz endpoint — no CORS, no backend) ============ */
+function setStatus(mode, text){
+  const dot = document.getElementById('statusDot');
+  dot.className = 'dot' + (mode==='error' ? ' err' : mode==='loading' ? ' loading' : '');
+  document.getElementById('statusText').textContent = text;
+}
+
+function onSheetData(table){
+  try{
+    const cols = table.table.cols.map(c => (c.label||'').trim());
+    const idx = name => cols.indexOf(name);
+    const iId=idx('Trainer_Id'), iName=idx('Trainer_Name'), iCenter=idx('Center_Name'),
+          iStatus=idx('Status'), iRole=idx('Designation'), iTgt=idx('Tgt'), iAch=idx('Ach');
+
+    if(iId<0 || iName<0){ throw new Error('Expected columns not found'); }
+
+    const rows = table.table.rows
+      .map(r => r.c)
+      .filter(c => c && c[iId] && c[iId].v)
+      .map(c => ({
+        id: c[iId] ? c[iId].v : null,
+        name: c[iName] ? String(c[iName].v).trim() : '',
+        center: c[iCenter] ? String(c[iCenter].v).trim() : 'Unassigned',
+        role: c[iRole] ? String(c[iRole].v).trim() : 'Personal Trainer',
+        tgt: c[iTgt] && typeof c[iTgt].v === 'number' ? c[iTgt].v : 0,
+        ach: c[iAch] && typeof c[iAch].v === 'number' ? c[iAch].v : 0,
+      }))
+      .filter(d => !iStatus || true); // Status column reserved for future use (e.g. exclude Inactive)
+
+    if(rows.length===0) throw new Error('No rows parsed');
+
+    buildDashboard(rows);
+    document.getElementById('errBanner').classList.remove('show');
+    setStatus('live', 'Live · NHC Sales Contest');
+    const now = new Date();
+    document.getElementById('syncTime').textContent = 'Last synced ' + now.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+  }catch(e){
+    handleSyncError();
+  }
+  cleanupScript();
+}
+
+function handleSyncError(){
+  document.getElementById('errBanner').classList.add('show');
+  setStatus('error', 'Sync failed · showing last known data');
+}
+
+let scriptEl = null;
+function cleanupScript(){
+  if(scriptEl){ scriptEl.remove(); scriptEl = null; }
+}
+
+function syncNow(){
+  setStatus('loading', 'Syncing…');
+  cleanupScript();
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;responseHandler:onSheetData&gid=${GID}&headers=1&range=${HEADER_RANGE}&_=${Date.now()}`;
+  scriptEl = document.createElement('script');
+  scriptEl.src = url;
+  scriptEl.onerror = handleSyncError;
+  document.body.appendChild(scriptEl);
+
+  // if nothing calls back within 8s, treat as failed
+  setTimeout(()=>{ if(scriptEl) handleSyncError(); }, 8000);
+}
+
+/* ============ INIT ============ */
+buildDashboard(FALLBACK_DATA);
+document.getElementById('syncTime').textContent = 'Loading live data…';
+syncNow();
+setInterval(syncNow, REFRESH_MS);
+</script>
+</body>
+</html>
